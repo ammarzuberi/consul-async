@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use std::collections::HashMap;
 
 use crate::errors::Result;
@@ -48,31 +49,37 @@ pub struct AgentService {
 
 //I haven't implemetned https://www.consul.io/api/agent.html#read-configuration
 //I haven't implemetned https://www.consul.io/api/agent.html#stream-logs
+#[async_trait]
 pub trait Agent {
-    fn checks(&self) -> Result<HashMap<String, AgentCheck>>;
-    fn members(&self, wan: bool) -> Result<AgentMember>;
-    fn reload(&self) -> Result<()>;
-    fn maintenance_mode(&self, enable: bool, reason: Option<&str>) -> Result<()>;
-    fn join(&self, address: &str, wan: bool) -> Result<()>;
-    fn leave(&self) -> Result<()>;
-    fn force_leave(&self) -> Result<()>;
+    async fn checks(&self) -> Result<HashMap<String, AgentCheck>>;
+    async fn members(&self, wan: bool) -> Result<AgentMember>;
+    async fn reload(&self) -> Result<()>;
+    async fn maintenance_mode(&self, enable: bool, reason: Option<&str>) -> Result<()>;
+    async fn join(&self, address: &str, wan: bool) -> Result<()>;
+    async fn leave(&self) -> Result<()>;
+    async fn force_leave(&self) -> Result<()>;
 }
 
+#[async_trait]
 impl Agent for Client {
     /// https://www.consul.io/api/agent/check.html#list-checks
-    fn checks(&self) -> Result<HashMap<String, AgentCheck>> {
-        get("/v1/agent/checks", &self.config, HashMap::new(), None).map(|x| x.0)
+    async fn checks(&self) -> Result<HashMap<String, AgentCheck>> {
+        get("/v1/agent/checks", &self.config, HashMap::new(), None)
+            .await
+            .map(|x| x.0)
     }
     /// https://www.consul.io/api/agent.html#list-members
-    fn members(&self, wan: bool) -> Result<AgentMember> {
+    async fn members(&self, wan: bool) -> Result<AgentMember> {
         let mut params = HashMap::new();
         if wan {
             params.insert(String::from("wan"), String::from("1"));
         }
-        get("/v1/agent/members", &self.config, params, None).map(|x| x.0)
+        get("/v1/agent/members", &self.config, params, None)
+            .await
+            .map(|x| x.0)
     }
     /// https://www.consul.io/api/agent.html#reload-agent
-    fn reload(&self) -> Result<()> {
+    async fn reload(&self) -> Result<()> {
         put(
             "/v1/agent/reload",
             None as Option<&()>,
@@ -80,11 +87,12 @@ impl Agent for Client {
             HashMap::new(),
             None,
         )
+        .await
         .map(|x| x.0)
     }
 
     /// https://www.consul.io/api/agent.html#reload-agent
-    fn maintenance_mode(&self, enable: bool, reason: Option<&str>) -> Result<()> {
+    async fn maintenance_mode(&self, enable: bool, reason: Option<&str>) -> Result<()> {
         let mut params = HashMap::new();
         let enable_str = if enable {
             String::from("true")
@@ -102,21 +110,24 @@ impl Agent for Client {
             params,
             None,
         )
+        .await
         .map(|x| x.0)
     }
     ///https://www.consul.io/api/agent.html#join-agent
-    fn join(&self, address: &str, wan: bool) -> Result<()> {
+    async fn join(&self, address: &str, wan: bool) -> Result<()> {
         let mut params = HashMap::new();
 
         if wan {
             params.insert(String::from("wan"), String::from("true"));
         }
         let path = format!("/v1/agent/join/{}", address);
-        put(&path, None as Option<&()>, &self.config, params, None).map(|x| x.0)
+        put(&path, None as Option<&()>, &self.config, params, None)
+            .await
+            .map(|x| x.0)
     }
 
     /// https://www.consul.io/api/agent.html#graceful-leave-and-shutdown
-    fn leave(&self) -> Result<()> {
+    async fn leave(&self) -> Result<()> {
         put(
             "/v1/agent/leave",
             None as Option<&()>,
@@ -124,11 +135,12 @@ impl Agent for Client {
             HashMap::new(),
             None,
         )
+        .await
         .map(|x| x.0)
     }
 
     ///https://www.consul.io/api/agent.html#force-leave-and-shutdown
-    fn force_leave(&self) -> Result<()> {
+    async fn force_leave(&self) -> Result<()> {
         put(
             "/v1/agent/force-leave",
             None as Option<&()>,
@@ -136,6 +148,7 @@ impl Agent for Client {
             HashMap::new(),
             None,
         )
+        .await
         .map(|x| x.0)
     }
 }

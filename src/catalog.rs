@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use std::collections::HashMap;
 
 use crate::agent::{AgentCheck, AgentService};
@@ -77,28 +78,30 @@ pub struct CatalogDeregistration {
     CheckID: String,
 }
 
+#[async_trait]
 pub trait Catalog {
-    fn register(
+    async fn register(
         &self,
         reg: &CatalogRegistration,
         q: Option<&WriteOptions>,
     ) -> Result<((), WriteMeta)>;
-    fn deregister(
+    async fn deregister(
         &self,
         dereg: &CatalogDeregistration,
         q: Option<&WriteOptions>,
     ) -> Result<((), WriteMeta)>;
-    fn datacenters(&self) -> Result<(Vec<String>, QueryMeta)>;
-    fn nodes(&self, q: Option<&QueryOptions>) -> Result<(Vec<Node>, QueryMeta)>;
-    fn services(
+    async fn datacenters(&self) -> Result<(Vec<String>, QueryMeta)>;
+    async fn nodes(&self, q: Option<&QueryOptions>) -> Result<(Vec<Node>, QueryMeta)>;
+    async fn services(
         &self,
         q: Option<&QueryOptions>,
     ) -> Result<(HashMap<String, Vec<String>>, QueryMeta)>;
 }
 
+#[async_trait]
 impl Catalog for Client {
     /// https://www.consul.io/api/catalog.html#register-entity
-    fn register(
+    async fn register(
         &self,
         reg: &CatalogRegistration,
         q: Option<&WriteOptions>,
@@ -110,10 +113,11 @@ impl Catalog for Client {
             HashMap::new(),
             q,
         )
+        .await
     }
 
     /// https://www.consul.io/api/catalog.html#deregister-entity
-    fn deregister(
+    async fn deregister(
         &self,
         dereg: &CatalogDeregistration,
         q: Option<&WriteOptions>,
@@ -125,27 +129,29 @@ impl Catalog for Client {
             HashMap::new(),
             q,
         )
+        .await
     }
 
     /// https://www.consul.io/api/catalog.html#list-datacenters
-    fn datacenters(&self) -> Result<(Vec<String>, QueryMeta)> {
+    async fn datacenters(&self) -> Result<(Vec<String>, QueryMeta)> {
         get(
             "/v1/catalog/datacenters",
             &self.config,
             HashMap::new(),
             None,
         )
+        .await
     }
 
     /// https://www.consul.io/api/catalog.html#list-nodes
-    fn nodes(&self, q: Option<&QueryOptions>) -> Result<(Vec<Node>, QueryMeta)> {
-        get("/v1/catalog/nodes", &self.config, HashMap::new(), q)
+    async fn nodes(&self, q: Option<&QueryOptions>) -> Result<(Vec<Node>, QueryMeta)> {
+        get("/v1/catalog/nodes", &self.config, HashMap::new(), q).await
     }
 
-    fn services(
+    async fn services(
         &self,
         q: Option<&QueryOptions>,
     ) -> Result<(HashMap<String, Vec<String>>, QueryMeta)> {
-        get("/v1/catalog/services", &self.config, HashMap::new(), q)
+        get("/v1/catalog/services", &self.config, HashMap::new(), q).await
     }
 }
