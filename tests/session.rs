@@ -4,10 +4,13 @@ use consul::{Client, Config};
 
 #[test]
 fn session_test() {
+    use tokio::runtime::Runtime;
+    let mut rt = Runtime::new().unwrap();
+
     use consul::session::Session;
     let config = Config::new().unwrap();
     let client = Client::new(config);
-    let r = client.list(None).unwrap();
+    let r = rt.block_on(client.list(None)).unwrap();
     assert!(r.0.is_empty());
 
     let entry = SessionEntry {
@@ -15,9 +18,9 @@ fn session_test() {
         ..Default::default()
     };
 
-    let id = client.create(&entry, None).unwrap().0.ID.unwrap();
+    let id = rt.block_on(client.create(&entry, None)).unwrap().0.ID.unwrap();
 
-    client.renew(&id, None).unwrap();
+    rt.block_on(client.renew(&id, None)).unwrap();
 
-    client.destroy(&id, None).unwrap();
+    rt.block_on(client.destroy(&id, None)).unwrap();
 }

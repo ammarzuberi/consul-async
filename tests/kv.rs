@@ -4,10 +4,13 @@ use consul::{Client, Config};
 
 #[test]
 fn kv_test() {
+    use tokio::runtime::Runtime;
+    let mut rt = Runtime::new().unwrap();
+
     use consul::kv::KV;
     let config = Config::new().unwrap();
     let client = Client::new(config);
-    let r = client.list("", None).unwrap();
+    let r = rt.block_on(client.list("", None)).unwrap();
     assert!(r.0.is_empty());
 
     let pair = KVPair {
@@ -16,13 +19,13 @@ fn kv_test() {
         ..Default::default()
     };
 
-    assert!(client.put(&pair, None).unwrap().0);
+    assert!(rt.block_on(client.put(&pair, None)).unwrap().0);
 
-    let r = client.list("t", None).unwrap();
+    let r = rt.block_on(client.list("t", None)).unwrap();
     assert!(!r.0.is_empty());
 
-    client.delete("testkey", None).unwrap();
+    rt.block_on(client.delete("testkey", None)).unwrap();
 
-    let r = client.list("", None).unwrap();
+    let r = rt.block_on(client.list("", None)).unwrap();
     assert!(r.0.is_empty());
 }

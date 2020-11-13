@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use std::collections::HashMap;
 
 use crate::errors::Result;
@@ -23,33 +24,35 @@ pub struct SessionEntry {
     pub TTL: Option<String>,
 }
 
+#[async_trait]
 pub trait Session {
-    fn create(
+    async fn create(
         &self,
         session: &SessionEntry,
         options: Option<&WriteOptions>,
     ) -> Result<(SessionEntry, WriteMeta)>;
-    fn destroy(&self, id: &str, options: Option<&WriteOptions>) -> Result<(bool, WriteMeta)>;
-    fn info(
+    async fn destroy(&self, id: &str, options: Option<&WriteOptions>) -> Result<(bool, WriteMeta)>;
+    async fn info(
         &self,
         id: &str,
         options: Option<&QueryOptions>,
     ) -> Result<(Vec<SessionEntry>, QueryMeta)>;
-    fn list(&self, options: Option<&QueryOptions>) -> Result<(Vec<SessionEntry>, QueryMeta)>;
-    fn node(
+    async fn list(&self, options: Option<&QueryOptions>) -> Result<(Vec<SessionEntry>, QueryMeta)>;
+    async fn node(
         &self,
         node: &str,
         options: Option<&QueryOptions>,
     ) -> Result<(Vec<SessionEntry>, QueryMeta)>;
-    fn renew(
+    async fn renew(
         &self,
         id: &str,
         options: Option<&WriteOptions>,
     ) -> Result<(Vec<SessionEntry>, WriteMeta)>;
 }
 
+#[async_trait]
 impl Session for Client {
-    fn create(
+    async fn create(
         &self,
         session: &SessionEntry,
         options: Option<&WriteOptions>,
@@ -61,8 +64,10 @@ impl Session for Client {
             HashMap::new(),
             options,
         )
+        .await
     }
-    fn destroy(&self, id: &str, options: Option<&WriteOptions>) -> Result<(bool, WriteMeta)> {
+    
+    async fn destroy(&self, id: &str, options: Option<&WriteOptions>) -> Result<(bool, WriteMeta)> {
         let path = format!("/v1/session/destroy/{}", id);
         put(
             &path,
@@ -71,28 +76,32 @@ impl Session for Client {
             HashMap::new(),
             options,
         )
+        .await
     }
-    fn info(
+
+    async fn info(
         &self,
         id: &str,
         options: Option<&QueryOptions>,
     ) -> Result<(Vec<SessionEntry>, QueryMeta)> {
         let path = format!("/v1/session/info/{}", id);
-        get(&path, &self.config, HashMap::new(), options)
+        get(&path, &self.config, HashMap::new(), options).await
     }
-    fn list(&self, options: Option<&QueryOptions>) -> Result<(Vec<SessionEntry>, QueryMeta)> {
-        get("/v1/session/list", &self.config, HashMap::new(), options)
+
+    async fn list(&self, options: Option<&QueryOptions>) -> Result<(Vec<SessionEntry>, QueryMeta)> {
+        get("/v1/session/list", &self.config, HashMap::new(), options).await
     }
-    fn node(
+
+    async fn node(
         &self,
         node: &str,
         options: Option<&QueryOptions>,
     ) -> Result<(Vec<SessionEntry>, QueryMeta)> {
         let path = format!("/v1/session/node/{}", node);
-        get(&path, &self.config, HashMap::new(), options)
+        get(&path, &self.config, HashMap::new(), options).await
     }
 
-    fn renew(
+    async fn renew(
         &self,
         id: &str,
         options: Option<&WriteOptions>,
@@ -105,5 +114,6 @@ impl Session for Client {
             HashMap::new(),
             options,
         )
+        .await
     }
 }
