@@ -89,9 +89,25 @@ pub async fn get_vec<R: DeserializeOwned>(
 pub async fn get<R: DeserializeOwned>(
     path: &str,
     config: &Config,
-    mut params: HashMap<String, String>,
+    params: HashMap<String, String>,
     options: Option<&QueryOptions>,
 ) -> Result<(R, QueryMeta)> {
+    let raw = get_raw(path, config, params, options)
+        .await
+        .chain_err(|| "Failed to get raw response")?;
+
+    let json: R = serde_json::from_str(&raw.0)
+        .chain_err(|| "Failed to parse JSON")?;
+
+    Ok((json, raw.1))
+}
+
+pub async fn get_raw(
+    path: &str,
+    config: &Config,
+    mut params: HashMap<String, String>,
+    options: Option<&QueryOptions>,
+) -> Result<(String, QueryMeta)> {
     let datacenter: Option<&String> = options
         .and_then(|o| o.datacenter.as_ref())
         .or_else(|| config.datacenter.as_ref());
@@ -131,12 +147,12 @@ pub async fn get<R: DeserializeOwned>(
                 })
         });
 
-    let j = response.json().await.chain_err(|| "Failed to parse JSON response")?;
+    let j = response.text().await.chain_err(|| "Failed to get raw response")?;
     match x {
         Some(r) => Ok((j, Some(r?))),
         None => Ok((j, None)),
     }
-    .map(|x: (R, Option<u64>)| {
+    .map(|x: (String, Option<u64>)| {
         (
             x.0,
             QueryMeta {
@@ -154,12 +170,12 @@ pub async fn delete<R: DeserializeOwned>(
     options: Option<&WriteOptions>,
 ) -> Result<(R, WriteMeta)> {
     let req = |http_client: &HttpClient, url: Url| -> RequestBuilder { http_client.delete(url) };
-    write_with_body(path, None as Option<&()>, config, params, options, req).await
+    write_with_body(path, None as Option<Body<()>>, config, params, options, req).await
 }
 
 pub async fn put<T: Serialize, R: DeserializeOwned>(
     path: &str,
-    body: Option<&T>,
+    body: Option<Body<T>>,
     config: &Config,
     params: HashMap<String, String>,
     options: Option<&WriteOptions>,
@@ -168,9 +184,15 @@ pub async fn put<T: Serialize, R: DeserializeOwned>(
     write_with_body(path, body, config, params, options, req).await
 }
 
+#[derive(Debug)]
+pub enum Body<T: Serialize> {
+    AsJson(T),
+    AsText(String),
+}
+
 async fn write_with_body<T: Serialize, R: DeserializeOwned, F>(
     path: &str,
-    body: Option<&T>,
+    body: Option<Body<T>>,
     config: &Config,
     mut params: HashMap<String, String>,
     options: Option<&WriteOptions>,
@@ -194,7 +216,10 @@ where
     let builder = req(&config.http_client, url);
     
     let builder = if let Some(b) = body {
-        builder.json(b)
+        match b {
+            Body::AsJson(json) => builder.json(&json),
+            Body::AsText(string) => builder.body(string)
+        }
     } else {
         builder
     };

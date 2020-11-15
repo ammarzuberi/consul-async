@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::errors::Error;
 use crate::errors::Result;
-use crate::request::{delete, get, get_vec, put};
+use crate::request::{delete, get, get_vec, put, Body};
 use crate::{Client, QueryMeta, QueryOptions, WriteMeta, WriteOptions};
 
 #[serde(default)]
@@ -14,7 +14,7 @@ pub struct KVPair {
     pub ModifyIndex: Option<u64>,
     pub LockIndex: Option<u64>,
     pub Flags: Option<u64>,
-    pub Value: String,
+    pub Value: Option<String>,
     pub Session: Option<String>,
 }
 
@@ -39,9 +39,13 @@ impl KV for Client {
             }
         }
         if let Some(ref session) = pair.Session {
-            params.insert(String::from("acquire"), session.to_owned());
+            params.insert(String::from("acquire"), session.to_string());
             let path = format!("/v1/kv/{}", pair.Key);
-            put(&path, Some(&pair.Value), &self.config, params, o).await
+
+            let value = pair.Value.as_ref()
+                .map(|v| Body::AsText::<String>(v.to_string()));
+
+            put(&path, value, &self.config, params, o).await
         } else {
             Err(Error::from("Session flag is required to acquire lock"))
         }
@@ -88,7 +92,11 @@ impl KV for Client {
             }
         }
         let path = format!("/v1/kv/{}", pair.Key);
-        put(&path, Some(&pair.Value), &self.config, params, o).await
+
+        let value = pair.Value.as_ref()
+            .map(|v| Body::AsText::<String>(v.to_string()));
+
+        put(&path, value, &self.config, params, o).await
     }
 
     async fn release(&self, pair: &KVPair, o: Option<&WriteOptions>) -> Result<(bool, WriteMeta)> {
@@ -101,7 +109,11 @@ impl KV for Client {
         if let Some(ref session) = pair.Session {
             params.insert(String::from("release"), session.to_owned());
             let path = format!("/v1/kv/{}", pair.Key);
-            put(&path, Some(&pair.Value), &self.config, params, o).await
+
+            let value = pair.Value.as_ref()
+                .map(|v| Body::AsText::<String>(v.to_string()));
+
+            put(&path, value, &self.config, params, o).await
         } else {
             Err(Error::from("Session flag is required to release a lock"))
         }

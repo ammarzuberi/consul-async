@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use std::collections::HashMap;
 
 use crate::errors::Result;
-use crate::request::{get, put};
+use crate::request::{get, put, Body};
 use crate::{Client, QueryMeta, QueryOptions, WriteMeta, WriteOptions};
 
 #[serde(default)]
@@ -59,7 +59,7 @@ impl Session for Client {
     ) -> Result<(SessionEntry, WriteMeta)> {
         put(
             "/v1/session/create",
-            Some(session),
+            Some(Body::AsJson(session)),
             &self.config,
             HashMap::new(),
             options,
@@ -71,7 +71,7 @@ impl Session for Client {
         let path = format!("/v1/session/destroy/{}", id);
         put(
             &path,
-            None as Option<&()>,
+            None as Option<Body<()>>,
             &self.config,
             HashMap::new(),
             options,
@@ -109,7 +109,7 @@ impl Session for Client {
         let path = format!("/v1/session/renew/{}", id);
         put(
             &path,
-            None as Option<&()>,
+            None as Option<Body<()>>,
             &self.config,
             HashMap::new(),
             options,
