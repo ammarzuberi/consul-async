@@ -56,8 +56,7 @@ pub async fn get_vec<R: DeserializeOwned>(
 
     let x: Option<Result<u64>> = response
         .headers()
-        .get("X-Consul-Index")
-        .and_then(|value: &HeaderValue| Some(value.as_bytes()))
+        .get("X-Consul-Index").map(|value: &HeaderValue| value.as_bytes())
         .map(|bytes| {
             str::from_utf8(bytes)
                 .chain_err(|| "Failed to parse valid UTF-8 for last index")
