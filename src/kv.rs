@@ -24,6 +24,7 @@ pub trait KV {
     async fn delete(&self, _: &str, _: Option<&WriteOptions>) -> Result<(bool, WriteMeta)>;
     async fn get(&self, _: &str, _: Option<&QueryOptions>) -> Result<(Option<KVPair>, QueryMeta)>;
     async fn list(&self, _: &str, _: Option<&QueryOptions>) -> Result<(Vec<KVPair>, QueryMeta)>;
+    async fn keys(&self, _: &str, _: Option<&str>, _: Option<&QueryOptions>) -> Result<(Vec<String>, QueryMeta)>;
     async fn put(&self, _: &KVPair, _: Option<&WriteOptions>) -> Result<(bool, WriteMeta)>;
     async fn release(&self, _: &KVPair, _: Option<&WriteOptions>) -> Result<(bool, WriteMeta)>;
 }
@@ -64,6 +65,17 @@ impl KV for Client {
     async fn list(&self, prefix: &str, o: Option<&QueryOptions>) -> Result<(Vec<KVPair>, QueryMeta)> {
         let mut params = HashMap::new();
         params.insert(String::from("recurse"), String::from(""));
+        let path = format!("/v1/kv/{}", prefix);
+        get_vec(&path, &self.config, params, o).await
+    }
+
+    async fn keys(&self, prefix: &str, separator: Option<&str>, o: Option<&QueryOptions>) -> Result<(Vec<String>, QueryMeta)> {
+        let mut params = HashMap::new();
+        params.insert(String::from("keys"), String::from(""));
+        if let Some(sep) = separator {
+            params.insert(String::from("separator"), String::from(sep));
+        }
+
         let path = format!("/v1/kv/{}", prefix);
         get_vec(&path, &self.config, params, o).await
     }
