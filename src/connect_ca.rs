@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde_json::Value;
 
 use crate::errors::Result;
-use crate::request::{get, put};
+use crate::request::{get, put, Body};
 use crate::{Client, QueryMeta, QueryOptions, WriteMeta, WriteOptions};
 
 #[serde(default)]
@@ -63,7 +63,7 @@ impl ConnectCA for Client {
     async fn ca_set_config(&self, conf: &CAConfig, q: Option<&WriteOptions>) -> Result<((), WriteMeta)> {
         put(
             "/v1/connect/ca/configuration",
-            Some(conf),
+            Some(Body::AsJson(conf)),
             &self.config,
             HashMap::new(),
             q,

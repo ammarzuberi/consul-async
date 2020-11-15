@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::agent::{AgentCheck, AgentService};
 use crate::errors::Result;
-use crate::request::{get, put};
+use crate::request::{get, put, Body};
 use crate::{Client, QueryMeta, QueryOptions, WriteMeta, WriteOptions};
 
 #[serde(default)]
@@ -108,7 +108,7 @@ impl Catalog for Client {
     ) -> Result<((), WriteMeta)> {
         put(
             "/v1/session/create",
-            Some(reg),
+            Some(Body::AsJson(reg)),
             &self.config,
             HashMap::new(),
             q,
@@ -124,7 +124,7 @@ impl Catalog for Client {
     ) -> Result<((), WriteMeta)> {
         put(
             "/v1/catalog/deregister",
-            Some(dereg),
+            Some(Body::AsJson(dereg)),
             &self.config,
             HashMap::new(),
             q,
